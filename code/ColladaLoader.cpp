@@ -3,7 +3,8 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2017, assimp team
+Copyright (c) 2006-2018, assimp team
+
 
 
 All rights reserved.
@@ -53,10 +54,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assimp/importerdesc.h>
 
 #include "ColladaParser.h"
-#include "fast_atof.h"
-#include "ParsingUtils.h"
-#include "SkeletonMeshBuilder.h"
-#include "CreateAnimMesh.h"
+#include <assimp/fast_atof.h>
+#include <assimp/ParsingUtils.h>
+#include <assimp/SkeletonMeshBuilder.h>
+#include <assimp/CreateAnimMesh.h>
 
 #include "time.h"
 #include "math.h"
@@ -130,6 +131,7 @@ void ColladaLoader::SetupProperties(const Importer* pImp)
 {
     noSkeletonMesh = pImp->GetPropertyInteger(AI_CONFIG_IMPORT_NO_SKELETON_MESHES,0) != 0;
     ignoreUpDirection = pImp->GetPropertyInteger(AI_CONFIG_IMPORT_COLLADA_IGNORE_UP_DIRECTION,0) != 0;
+    useColladaName = pImp->GetPropertyInteger(AI_CONFIG_IMPORT_COLLADA_USE_COLLADA_NAMES,0) != 0;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -1778,6 +1780,11 @@ aiString ColladaLoader::FindFilenameForEffectTexture( const ColladaParser& pPars
         tex->pcData = (aiTexel*)new char[tex->mWidth];
         memcpy(tex->pcData,&imIt->second.mImageData[0],tex->mWidth);
 
+        // TODO: check the possibility of using the flag "AI_CONFIG_IMPORT_FBX_EMBEDDED_TEXTURES_LEGACY_NAMING"
+        // In FBX files textures are now stored internally by Assimp with their filename included
+        // Now Assimp can lookup thru the loaded textures after all data is processed
+        // We need to load all textures before referencing them, as FBX file format order may reference a texture before loading it
+        // This may occur on this case too, it has to be studied
         // setup texture reference string
         result.data[0] = '*';
         result.length = 1 + ASSIMP_itoa10(result.data+1,static_cast<unsigned int>(MAXLEN-1),static_cast<int32_t>(mTextures.size()));
@@ -1907,6 +1914,11 @@ const Collada::Node* ColladaLoader::FindNodeBySID( const Collada::Node* pNode, c
 // The name must be unique for proper node-bone association.
 std::string ColladaLoader::FindNameForNode( const Collada::Node* pNode)
 {
+    // If explicitly requested, just use the collada name.
+    if (useColladaName) {
+        return pNode->mName;
+    }
+
     // Now setup the name of the assimp node. The collada name might not be
     // unique, so we use the collada ID.
     if (!pNode->mID.empty())

@@ -1,6 +1,7 @@
 # Open Asset Import Library (assimp)
 # ----------------------------------------------------------------------
-# Copyright (c) 2006-2017, assimp team
+# Copyright (c) 2006-2018, assimp team
+
 # All rights reserved.
 #
 # Redistribution and use of this software in source and binary forms,
@@ -41,6 +42,10 @@ PROJECT( Assimp )
 OPTION( BUILD_SHARED_LIBS
   "Build package with shared libraries."
   ON
+)
+OPTION( BUILD_FRAMEWORK
+  "Build package as Mac OS X Framework bundle."
+  OFF
 )
 OPTION( ASSIMP_DOUBLE_PRECISION
   "Set to ON to enable double precision processing"
@@ -99,6 +104,7 @@ OPTION ( BUILD_DOCS
   OFF
 )
 
+# Use subset of Windows.h
 if (WIN32)
   ADD_DEFINITIONS( -DWIN32_LEAN_AND_MEAN )
 endif()
@@ -111,6 +117,11 @@ IF(MSVC)
   )
 ENDIF(MSVC)
 
+IF (BUILD_FRAMEWORK)
+  SET (BUILD_SHARED_LIBS ON)
+  MESSAGE(STATUS "Framework bundle building enabled")
+ENDIF(BUILD_FRAMEWORK)
+
 IF(NOT BUILD_SHARED_LIBS)
   MESSAGE(STATUS "Shared libraries disabled")
   SET(LINK_SEARCH_START_STATIC TRUE)
@@ -120,8 +131,8 @@ ENDIF(NOT BUILD_SHARED_LIBS)
 
 # Define here the needed parameters
 SET (ASSIMP_VERSION_MAJOR 4)
-SET (ASSIMP_VERSION_MINOR 0)
-SET (ASSIMP_VERSION_PATCH 1)
+SET (ASSIMP_VERSION_MINOR 1)
+SET (ASSIMP_VERSION_PATCH 0)
 SET (ASSIMP_VERSION ${ASSIMP_VERSION_MAJOR}.${ASSIMP_VERSION_MINOR}.${ASSIMP_VERSION_PATCH})
 SET (ASSIMP_SOVERSION 4)
 SET (PROJECT_VERSION "${ASSIMP_VERSION}")
@@ -194,7 +205,6 @@ IF( UNIX )
   INCLUDE(GNUInstallDirs)
 ENDIF( UNIX )
 
-
 # Grouped compiler settings
 IF ((CMAKE_C_COMPILER_ID MATCHES "GNU") AND NOT CMAKE_COMPILER_IS_MINGW)
   # hide all not-exported symbols
@@ -204,7 +214,9 @@ IF ((CMAKE_C_COMPILER_ID MATCHES "GNU") AND NOT CMAKE_COMPILER_IS_MINGW)
 ELSEIF(MSVC)
   # enable multi-core compilation with MSVC
   add_compile_options(/MP)
-
+  if("${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
+    add_compile_options( /bigobj )
+  endif()
   # disable "elements of array '' will be default initialized" warning on MSVC2013
   IF(MSVC12)
     add_compile_options(/wd4351)
@@ -217,6 +229,11 @@ ELSEIF( CMAKE_COMPILER_IS_MINGW )
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
   ADD_DEFINITIONS( -U__STRICT_ANSI__ )
 ENDIF()
+
+if (IOS)
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -fembed-bitcode -O3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fembed-bitcode -O3")
+endif()
 
 if (ASSIMP_COVERALLS)
     MESSAGE(STATUS "Coveralls enabled")
