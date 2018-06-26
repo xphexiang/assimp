@@ -70,7 +70,8 @@ class ASSIMP_API DefaultIOStream : public IOStream
 
 protected:
     DefaultIOStream();
-    DefaultIOStream(FILE* pFile, const std::string &strFilename);
+    DefaultIOStream(FILE* pFile, const ::std::string &strFilename);
+    DefaultIOStream(FILE* pFile, const ::std::wstring &strFilename);
 
 public:
     /** Destructor public to allow simple deletion to close the file. */
@@ -111,29 +112,42 @@ private:
     FILE* mFile;
     //  Filename
     std::string mFilename;
-
+    // Unicode filename UTF-16 -> special case for Win32
+    std::wstring mUnicodeFilename;
     // Cached file size
     mutable size_t mCachedSize;
 };
 
 // ----------------------------------------------------------------------------------
-inline DefaultIOStream::DefaultIOStream () :
-    mFile       (NULL),
-    mFilename   (""),
-    mCachedSize(SIZE_MAX)
-{
+inline
+DefaultIOStream::DefaultIOStream ()
+: mFile( nullptr )
+, mFilename( "" )
+, mUnicodeFilename( L"" )
+, mCachedSize( SIZE_MAX ) {
     // empty
 }
 
 // ----------------------------------------------------------------------------------
-inline DefaultIOStream::DefaultIOStream (FILE* pFile,
-        const std::string &strFilename) :
-    mFile(pFile),
-    mFilename(strFilename),
-    mCachedSize(SIZE_MAX)
-{
+inline
+DefaultIOStream::DefaultIOStream (FILE* pFile,
+        const std::string &strFilename)
+: mFile( pFile )
+, mFilename(strFilename)
+, mUnicodeFilename( L"" )
+, mCachedSize(SIZE_MAX) {
     // empty
 }
+// ----------------------------------------------------------------------------------
+inline
+DefaultIOStream::DefaultIOStream(FILE* pFile, const std::wstring &strFilename)
+: mFile(pFile)
+, mFilename("")
+, mUnicodeFilename(strFilename)
+, mCachedSize(SIZE_MAX) {
+    // empty
+}
+
 // ----------------------------------------------------------------------------------
 
 } // ns assimp
